@@ -2,18 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
-// This makes the file a module for Vercel/TypeScript
-export default function QuantRead() {
+const QuantRead = () => {
   const [text, setText] = useState("");
   const [tokens, setTokens] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [wpm, setWpm] = useState(300);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value);
-  };
 
   const startReader = () => {
     const splitTokens = text.split(/\s+/).filter(t => t.length > 0);
@@ -46,50 +41,79 @@ export default function QuantRead() {
     const end = word.slice(centerIndex + 1);
 
     return (
-      <div className="text-4xl font-mono flex justify-center items-center">
-        <span className="text-right flex-1">{start}</span>
-        <span className="text-red-500">{mid}</span>
-        <span className="text-left flex-1">{end}</span>
+      <div className="text-5xl md:text-7xl font-mono tracking-tight flex justify-center items-center text-slate-100">
+        <span className="text-right flex-1 opacity-40">{start}</span>
+        <span className="text-red-500 font-bold px-1 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">{mid}</span>
+        <span className="text-left flex-1 opacity-40">{end}</span>
       </div>
     );
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-8 flex flex-col items-center gap-8 bg-white text-black min-h-screen">
-      <h1 className="text-3xl font-bold">QuantRead</h1>
-      
-      <div className="w-full h-32 border-2 border-gray-200 rounded flex items-center justify-center bg-gray-50">
-        {isPlaying ? renderWord(tokens[currentIndex]) : <span className="text-gray-400">Ready to Read</span>}
-      </div>
+    <div className="min-h-screen bg-[#020617] text-slate-200 selection:bg-red-500/30 font-sans transition-colors duration-700">
+      <div className="max-w-4xl mx-auto px-6 py-12 flex flex-col items-center gap-12">
+        
+        {/* Header - Fades out in Zen Mode */}
+        <header className={`text-center transition-opacity duration-1000 ${isPlaying ? 'opacity-0' : 'opacity-100'}`}>
+          <h1 className="text-4xl font-black tracking-tighter text-white mb-2">
+            QUANT<span className="text-red-500">READ</span>
+          </h1>
+          <p className="text-slate-500 text-xs uppercase tracking-[0.3em] font-medium">Neural Speed Interface</p>
+        </header>
 
-      <textarea
-        className="w-full h-40 p-4 border rounded text-black"
-        placeholder="Paste your text here..."
-        value={text}
-        onChange={handleTextChange}
-      />
+        {/* Reader Display */}
+        <div className={`w-full aspect-video md:aspect-[21/9] bg-slate-900/40 border border-slate-800 rounded-[2rem] shadow-2xl backdrop-blur-md flex items-center justify-center relative overflow-hidden transition-all duration-700 ${isPlaying ? 'border-red-500/20 shadow-red-500/5' : ''}`}>
+          {isPlaying ? renderWord(tokens[currentIndex]) : (
+            <div className="text-slate-600 animate-pulse text-sm tracking-[0.2em] uppercase font-bold">
+              System Ready
+            </div>
+          )}
+        </div>
 
-      <div className="flex gap-4 items-center">
-        <label>WPM: </label>
-        <input 
-          type="number" 
-          value={wpm} 
-          onChange={(e) => setWpm(Number(e.target.value))}
-          className="border p-1 w-20 text-black"
-        />
+        {/* Controls Panel - Fades out in Zen Mode */}
+        <div className={`w-full max-w-2xl space-y-8 bg-slate-900/50 p-8 rounded-3xl border border-slate-800/50 transition-all duration-1000 ${isPlaying ? 'opacity-0 pointer-events-none translate-y-10' : 'opacity-100'}`}>
+          <textarea
+            className="w-full h-32 p-4 bg-[#020617] border border-slate-800 rounded-2xl focus:ring-1 focus:ring-red-500/50 focus:border-red-500/50 transition-all outline-none resize-none text-slate-300 placeholder:text-slate-700 font-mono text-sm"
+            placeholder="INPUT TEXT TO PROCESS..."
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+
+          <div className="flex flex-wrap items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">Frequency</span>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="number" 
+                    value={wpm} 
+                    onChange={(e) => setWpm(Number(e.target.value))}
+                    className="bg-transparent w-16 text-xl font-mono text-red-500 outline-none"
+                  />
+                  <span className="text-xs text-slate-500 font-bold">WPM</span>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={startReader}
+              className="bg-red-600 hover:bg-red-500 text-white font-black text-xs tracking-widest py-4 px-10 rounded-full transition-all transform hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(220,38,38,0.3)]"
+            >
+              EXECUTE
+            </button>
+          </div>
+        </div>
+
+        {/* Floating Stop Button (Only visible during Zen Mode) */}
         <button 
-          onClick={startReader}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+          onClick={() => setIsPlaying(false)}
+          className={`fixed bottom-8 px-6 py-2 bg-slate-900 border border-slate-800 rounded-full text-[10px] font-bold tracking-widest text-slate-500 hover:text-red-500 transition-all ${isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         >
-          EXECUTE
-        </button>
-        <button 
-          onClick={() => setIsPlaying(!isPlaying)}
-          className="bg-gray-600 text-white px-6 py-2 rounded"
-        >
-          {isPlaying ? "PAUSE" : "RESUME"}
+          TERMINATE PROCESS
         </button>
       </div>
     </div>
   );
-}
+};
+
+export default QuantRead;
