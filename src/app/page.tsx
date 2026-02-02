@@ -9,6 +9,23 @@ const QuantRead = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [wpm, setWpm] = useState(300);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Word Counter Logic
+  const wordCount = text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setText(content); // For now, this handles .txt files. 
+      // Note: Full PDF parsing usually requires a library like 'pdf.js'
+    };
+    reader.readAsText(file);
+  };
 
   const startReader = () => {
     const splitTokens = text.split(/\s+/).filter(t => t.length > 0);
@@ -53,7 +70,7 @@ const QuantRead = () => {
     <div className="min-h-screen bg-[#020617] text-slate-200 selection:bg-red-500/30 font-sans transition-colors duration-700">
       <div className="max-w-4xl mx-auto px-6 py-12 flex flex-col items-center gap-12">
         
-        {/* Header - Fades out in Zen Mode */}
+        {/* Header */}
         <header className={`text-center transition-opacity duration-1000 ${isPlaying ? 'opacity-0' : 'opacity-100'}`}>
           <h1 className="text-4xl font-black tracking-tighter text-white mb-2">
             QUANT<span className="text-red-500">READ</span>
@@ -70,17 +87,36 @@ const QuantRead = () => {
           )}
         </div>
 
-        {/* Controls Panel - Fades out in Zen Mode */}
-        <div className={`w-full max-w-2xl space-y-8 bg-slate-900/50 p-8 rounded-3xl border border-slate-800/50 transition-all duration-1000 ${isPlaying ? 'opacity-0 pointer-events-none translate-y-10' : 'opacity-100'}`}>
+        {/* Controls Panel */}
+        <div className={`w-full max-w-2xl space-y-6 bg-slate-900/50 p-8 rounded-3xl border border-slate-800/50 transition-all duration-1000 ${isPlaying ? 'opacity-0 pointer-events-none translate-y-10' : 'opacity-100'}`}>
+          
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Input Stream</span>
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="text-[10px] font-bold text-red-500 hover:text-red-400 transition-colors uppercase tracking-widest bg-red-500/10 px-3 py-1 rounded-md border border-red-500/20"
+            >
+              Upload Document
+            </button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+              accept=".txt,.pdf" 
+              className="hidden" 
+            />
+          </div>
+
           <textarea
-            className="w-full h-32 p-4 bg-[#020617] border border-slate-800 rounded-2xl focus:ring-1 focus:ring-red-500/50 focus:border-red-500/50 transition-all outline-none resize-none text-slate-300 placeholder:text-slate-700 font-mono text-sm"
-            placeholder="INPUT TEXT TO PROCESS..."
+            className="w-full h-40 p-4 bg-[#020617] border border-slate-800 rounded-2xl focus:ring-1 focus:ring-red-500/50 focus:border-red-500/50 transition-all outline-none resize-none text-slate-300 placeholder:text-slate-700 font-mono text-sm"
+            placeholder="PASTE TEXT OR UPLOAD FILE..."
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
 
-          <div className="flex flex-wrap items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
+          {/* Word Counter & Settings */}
+          <div className="flex flex-wrap items-center justify-between gap-6 border-t border-slate-800 pt-6">
+            <div className="flex gap-8">
               <div className="flex flex-col">
                 <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">Frequency</span>
                 <div className="flex items-center gap-2">
@@ -91,6 +127,14 @@ const QuantRead = () => {
                     className="bg-transparent w-16 text-xl font-mono text-red-500 outline-none"
                   />
                   <span className="text-xs text-slate-500 font-bold">WPM</span>
+                </div>
+              </div>
+              
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">Volume</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-mono text-slate-300">{wordCount}</span>
+                  <span className="text-xs text-slate-500 font-bold">WORDS</span>
                 </div>
               </div>
             </div>
@@ -104,7 +148,7 @@ const QuantRead = () => {
           </div>
         </div>
 
-        {/* Floating Stop Button (Only visible during Zen Mode) */}
+        {/* Floating Stop Button */}
         <button 
           onClick={() => setIsPlaying(false)}
           className={`fixed bottom-8 px-6 py-2 bg-slate-900 border border-slate-800 rounded-full text-[10px] font-bold tracking-widest text-slate-500 hover:text-red-500 transition-all ${isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
