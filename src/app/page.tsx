@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
+// Define lib variable for dynamic client-side loading
 let pdfjsLib: any = null;
 
 const QuantRead = () => {
@@ -18,46 +19,61 @@ const QuantRead = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Initialize library, load history, and "catch" beamed text from extension
   useEffect(() => {
     const initApp = async () => {
+      // Prevent SSR errors by importing only on client
       pdfjsLib = await import('pdfjs-dist');
       pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
       setIsLibReady(true);
+
+      // 1. Load Session History
       const saved = localStorage.getItem('quantread_history');
       if (saved) setHistory(JSON.parse(saved));
+
+      // 2. Catch the Beam (URL Parameters)
+      const params = new URLSearchParams(window.location.search);
+      const sharedText = params.get('text');
+      if (sharedText) {
+        const decodedText = decodeURIComponent(sharedText);
+        setText(decodedText);
+        // Clean the URL bar so the text isn't "re-caught" on refresh
+        window.history.replaceState({}, document.title, "/");
+      }
     };
     initApp();
   }, []);
 
   const sanitizeText = (rawText: string) => {
     return rawText
-      .replace(/<[^>]*>?/gm, '') // Remove HTML tags
+      .replace(/<[^>]*>?/gm, '') // Strip HTML
       .replace(/(\r\n|\n|\r)/gm, " ") 
       .replace(/\s+/g, " ")           
       .trim();
   };
 
-  // NEW: Web Article Fetcher
+  const saveToHistory = (entryName: string) => {
+    const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const newEntry = `${timestamp} - ${entryName}`;
+    const updatedHistory = [newEntry, ...history.slice(0, 4)];
+    setHistory(updatedHistory);
+    localStorage.setItem('quantread_history', JSON.stringify(updatedHistory));
+  };
+
   const fetchWebArticle = async () => {
     if (!urlInput) return;
     setIsLoading(true);
     try {
-      // Using a public "All Origins" proxy to bypass CORS restrictions
       const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(urlInput)}`);
       const data = await response.json();
-      
-      // Basic extraction: finding the body text from the HTML string
       const parser = new DOMParser();
       const doc = parser.parseFromString(data.contents, 'text/html');
-      
-      // Target common article containers
       const articleText = doc.querySelector('article')?.innerText || doc.querySelector('main')?.innerText || doc.body.innerText;
-      
       setText(sanitizeText(articleText));
       saveToHistory(`WEB: ${new URL(urlInput).hostname}`);
       setUrlInput("");
     } catch (error) {
-      alert("Could not fetch article. The site may be protected.");
+      alert("Stream Blocked: Could not fetch this specific site.");
     } finally {
       setIsLoading(false);
     }
@@ -81,13 +97,6 @@ const QuantRead = () => {
       reader.readAsText(file);
     }
     saveToHistory(`FILE: ${file.name}`);
-  };
-
-  const saveToHistory = (entryName: string) => {
-    const newEntry = `${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${entryName}`;
-    const updatedHistory = [newEntry, ...history.slice(0, 4)];
-    setHistory(updatedHistory);
-    localStorage.setItem('quantread_history', JSON.stringify(updatedHistory));
   };
 
   const startReader = () => {
@@ -129,7 +138,7 @@ const QuantRead = () => {
           <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Neural Logs</h2>
           <div className="space-y-2">
             {history.map((item, i) => (
-              <div key={i} className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl text-[10px] text-slate-400 truncate hover:border-red-500/30 cursor-pointer">
+              <div key={i} className="p-3 bg-slate-900/40 border border-slate-800 rounded-xl text-[10px] text-slate-400 truncate">
                 {item}
               </div>
             ))}
@@ -138,12 +147,16 @@ const QuantRead = () => {
 
         <main className="lg:col-span-3 space-y-8">
           <header className={`flex justify-between items-end transition-opacity duration-700 ${isPlaying ? 'opacity-0' : 'opacity-100'}`}>
-            <h1 className="text-3xl font-black tracking-tighter">QUANT<span className="text-red-500 text-4xl">.</span>READ</h1>
+            <h1 className="text-3xl font-black tracking-tighter text-white">QUANT<span className="text-red-500 text-4xl">.</span>READ</h1>
+            <div className="text-right">
+                <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-1">Time to End</span>
+                <span className="text-2xl font-mono text-red-500">{Math.ceil((tokens.length - currentIndex) / wpm)} <small className="text-[10px] text-slate-600">MIN</small></span>
+            </div>
           </header>
 
           {/* Reader Display */}
           <div className="relative w-full aspect-video bg-slate-900/20 border border-slate-800 rounded-[3rem] shadow-2xl backdrop-blur-xl flex items-center justify-center overflow-hidden">
-            <div className="absolute top-0 left-0 h-1 bg-red-600 transition-all duration-300" style={{ width: `${(currentIndex / tokens.length) * 100}%` }} />
+            <div className="absolute top-0 left-0 h-1 bg-red-600 transition-all duration-300 shadow-[0_0_15px_rgba(220,38,38,0.5)]" style={{ width: `${(currentIndex / tokens.length) * 100}%` }} />
             {isPlaying ? renderWord(tokens[currentIndex]) : (
                <div className="flex flex-col items-center gap-2">
                  <span className="text-[10px] text-slate-600 font-black uppercase tracking-[0.4em]">{isLoading ? "FETCHING DATA..." : "Awaiting Data Stream"}</span>
@@ -151,22 +164,17 @@ const QuantRead = () => {
             )}
           </div>
 
-          {/* Input Section */}
+          {/* Controls Section */}
           <section className={`space-y-6 bg-slate-900/30 p-8 rounded-[2.5rem] border border-slate-800 transition-all duration-1000 ${isPlaying ? 'opacity-0 translate-y-20' : 'opacity-100'}`}>
-            
-            {/* URL Fetcher Bar */}
             <div className="flex gap-2 p-2 bg-[#020617] rounded-2xl border border-slate-800">
               <input 
                 type="text" 
-                placeholder="PASTE ARTICLE URL (e.g. news.com/article)..." 
+                placeholder="PASTE URL..." 
                 className="flex-1 bg-transparent px-4 py-2 text-xs font-mono outline-none text-slate-300"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
               />
-              <button 
-                onClick={fetchWebArticle}
-                className="bg-slate-800 hover:bg-slate-700 text-[9px] font-bold px-6 py-2 rounded-xl uppercase tracking-widest transition-all"
-              >
+              <button onClick={fetchWebArticle} className="bg-slate-800 hover:bg-slate-700 text-[9px] font-bold px-6 py-2 rounded-xl uppercase tracking-widest transition-all">
                 {isLoading ? "LOADING..." : "FETCH URL"}
               </button>
             </div>
@@ -189,7 +197,6 @@ const QuantRead = () => {
                 </button>
                 <input type="file" ref={fileInputRef} onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])} accept=".txt,.pdf" className="hidden" />
               </div>
-              
               <button onClick={startReader} className="bg-red-600 hover:bg-red-500 text-white font-black px-12 py-4 rounded-2xl shadow-xl transition-all active:scale-95">
                 EXECUTE
               </button>
