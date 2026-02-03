@@ -30,8 +30,8 @@ export default function Home() {
             distraction-free data consumption.
           </p>
 
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-8 text-white">
-            <button className="px-8 py-4 bg-red-600 hover:bg-red-500 font-black uppercase tracking-widest transition-all skew-x-[-12deg]">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-8">
+            <button className="px-8 py-4 bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-widest transition-all skew-x-[-12deg]">
               <span className="block skew-x-[12deg]">Get Extension</span>
             </button>
           </div>
@@ -39,7 +39,7 @@ export default function Home() {
       </section>
 
       {/* --- HOW IT WORKS SECTION --- */}
-      <section id="how-it-works" className="py-24 bg-[#020617] text-white border-t border-slate-900">
+      <section id="how-it-works" className="py-24 bg-[#020617] text-white">
         <div className="max-w-6xl mx-auto px-6 text-left">
           <div className="mb-20 space-y-2">
             <p className="text-red-500 font-mono text-xs tracking-[0.4em] uppercase">Deployment Protocol</p>
