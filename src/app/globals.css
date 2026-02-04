@@ -3,16 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-rgb: 2, 6, 23;
+  --background: #020617;
+  --foreground: #ffffff;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: #020617;
+  color: var(--foreground);
+  background: var(--background);
   margin: 0;
-}
-
-html {
-  scroll-behavior: smooth;
 }
