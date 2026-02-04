@@ -57,7 +57,6 @@ export default function ReaderPage() {
     }
   };
 
-  // Fixed Style: Removed all background-based padding/divs to eliminate phantom boxes
   const renderFixedWord = (word: string) => {
     if (!word) return null;
     const displayWord = isAllCaps ? word.toUpperCase() : word;
@@ -218,9 +217,16 @@ export default function ReaderPage() {
           
           {!zenMode && (
             <div className="mt-8 flex justify-center gap-4">
-              <button onClick={() => setIsActive(!isActive)} className="w-full md:w-auto px-16 py-5 bg-red-600 text-white font-black uppercase tracking-[0.2em] skew-x-[-12deg] active:scale-95 transition-all">
-                <span className="block skew-x-[12deg]">{isActive ? "Stop" : "Initiate"}</span>
-              </button>
+              {/* Reset Logic for Re-initiation */}
+              {stats.isComplete ? (
+                <button onClick={() => {setIndex(0); setText("READY");}} className="w-full md:w-auto px-16 py-5 border border-red-600 text-red-600 font-black uppercase tracking-[0.2em] skew-x-[-12deg] hover:bg-red-600 hover:text-white transition-all">
+                  <span className="block skew-x-[12deg]">Restart Session</span>
+                </button>
+              ) : (
+                <button onClick={() => setIsActive(!isActive)} className="w-full md:w-auto px-16 py-5 bg-red-600 text-white font-black uppercase tracking-[0.2em] skew-x-[-12deg] active:scale-95 transition-all">
+                  <span className="block skew-x-[12deg]">{isActive ? "Stop" : "Initiate"}</span>
+                </button>
+              )}
             </div>
           )}
         </section>
