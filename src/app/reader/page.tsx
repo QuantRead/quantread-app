@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 export default function ReaderPage() {
-  const [text, setText] = useState("READY"); // Shortened initial text
+  const [text, setText] = useState("READY");
   const [fullRawText, setFullRawText] = useState("");
   const [words, setWords] = useState(["Awaiting", "Neural", "Data", "Beam..."]);
   const [index, setIndex] = useState(0);
@@ -12,20 +12,24 @@ export default function ReaderPage() {
   const [showArchive, setShowArchive] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
   const [isAllCaps, setIsAllCaps] = useState(true);
+  const [isChunking, setIsChunking] = useState(false); // New: Chunking State
   const [wpm, setWpm] = useState(400);
   const [showZenControls, setShowZenControls] = useState(false);
 
   useEffect(() => {
     const savedWpm = localStorage.getItem('quantread_wpm');
     const savedCase = localStorage.getItem('quantread_allcaps');
+    const savedChunk = localStorage.getItem('quantread_chunking');
     if (savedWpm) setWpm(parseInt(savedWpm));
     if (savedCase) setIsAllCaps(savedCase === 'true');
+    if (savedChunk) setIsChunking(savedChunk === 'true');
   }, []);
 
   useEffect(() => {
     localStorage.setItem('quantread_wpm', wpm.toString());
     localStorage.setItem('quantread_allcaps', isAllCaps.toString());
-  }, [wpm, isAllCaps]);
+    localStorage.setItem('quantread_chunking', isChunking.toString());
+  }, [wpm, isAllCaps, isChunking]);
 
   const stats = useMemo(() => {
     const total = words.length;
@@ -34,19 +38,26 @@ export default function ReaderPage() {
     const remainingWords = total - current;
     const minutes = Math.ceil(remainingWords / (wpm || 400));
     const isComplete = index >= total && total > 5;
-    return { count: total, current, progress, time: minutes, isHighSpeed: wpm >= 600, isComplete };
+    return { count: total, current, progress, time: minutes, isComplete };
   }, [words, index, wpm]);
 
+  // DYNAMIC RENDERER: Handles single word or chunked words with scaling
   const renderFixedWord = (word: string) => {
     if (!word) return null;
     const displayWord = isAllCaps ? word.toUpperCase() : word;
+    
+    // Dynamic Font Scaling: Shrink font if word/chunk is long
+    const baseSize = zenMode ? "text-8xl md:text-[14rem]" : "text-6xl md:text-9xl";
+    const shrinkSize = zenMode ? "text-6xl md:text-[9rem]" : "text-4xl md:text-7xl";
+    const useSmallFont = displayWord.length > 12;
+
     const midpoint = Math.floor(displayWord.length / 2);
     const partLeft = displayWord.substring(0, midpoint);
     const pivot = displayWord.substring(midpoint, midpoint + 1);
     const partRight = displayWord.substring(midpoint + 1);
 
     return (
-      <div className="flex w-full justify-center items-center font-black italic tracking-tighter text-white transition-all gap-x-[1px]">
+      <div className={`flex w-full justify-center items-center font-black italic tracking-tighter text-white transition-all gap-x-[1px] ${useSmallFont ? shrinkSize : baseSize}`}>
         <div className="flex-1 text-right opacity-100 min-w-0 overflow-visible">{partLeft}</div>
         <div className="text-red-600 scale-125 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)] z-30 px-1">{pivot}</div>
         <div className="flex-1 text-left opacity-100 min-w-0 overflow-visible">{partRight}</div>
@@ -62,7 +73,7 @@ export default function ReaderPage() {
         setWords(newText.trim().split(/\s+/));
         setHistory(prev => [`[BEAMED] ${newText.substring(0, 20)}...`, ...prev]);
         setIndex(0);
-        setText("BEAMED"); // Shortened handshake message
+        setText("BEAMED");
         window.focus(); 
       }
     };
@@ -75,15 +86,20 @@ export default function ReaderPage() {
     if (isActive && index < words.length) {
       const ms = (60 / wpm) * 1000;
       interval = setInterval(() => {
-        setText(words[index]);
-        setIndex(prev => prev + 1);
-      }, ms);
+        if (isChunking && index + 1 < words.length) {
+          setText(`${words[index]} ${words[index + 1]}`);
+          setIndex(prev => prev + 2);
+        } else {
+          setText(words[index]);
+          setIndex(prev => prev + 1);
+        }
+      }, isChunking ? ms * 1.8 : ms); // Slight delay for chunks to allow processing
     } else if (stats.isComplete && isActive) {
       setIsActive(false);
       setHistory(prev => [`[COMPLETE] ${words.length} WORDS @ ${wpm} WPM`, ...prev]);
     }
     return () => clearInterval(interval);
-  }, [isActive, index, words, wpm, stats.isComplete]);
+  }, [isActive, index, words, wpm, isChunking, stats.isComplete]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -94,28 +110,14 @@ export default function ReaderPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    const handleMouseMove = () => {
-      setShowZenControls(true);
-      clearTimeout(timeout);
-      timeout = setTimeout(() => setShowZenControls(false), 2000);
-    };
-    if (zenMode) window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [zenMode]);
-
   return (
     <main className={`min-h-screen p-8 transition-all duration-700 ${zenMode ? 'bg-black cursor-none' : 'bg-[#030712]'}`}>
       
       {zenMode && (
         <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[60] flex gap-4 transition-opacity duration-500 ${showZenControls ? 'opacity-100' : 'opacity-0'}`}>
-          <button onClick={() => setIsActive(!isActive)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">
-            {isActive ? "Pause" : "Resume"}
-          </button>
-          <button onClick={() => setZenMode(false)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">
-            Exit Zen
-          </button>
+          <button onClick={() => setIsActive(!isActive)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">{isActive ? "Pause" : "Resume"}</button>
+          <button onClick={() => setIsChunking(!isChunking)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">Chunk: {isChunking ? "ON" : "OFF"}</button>
+          <button onClick={() => setZenMode(false)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">Exit Zen</button>
         </div>
       )}
 
@@ -126,11 +128,7 @@ export default function ReaderPage() {
             <span className="text-[9px] font-mono text-slate-500 tracking-[0.4em] uppercase">Experimental Speed Deck</span>
           </div>
           <div className="flex gap-4">
-            {fullRawText && (
-              <button onClick={() => setShowArchive(!showArchive)} className="px-4 py-2 glass-card text-[10px] font-mono uppercase tracking-widest hover:text-red-500">
-                {showArchive ? "Close" : "Full Text"}
-              </button>
-            )}
+            <button onClick={() => setIsChunking(!isChunking)} className="px-4 py-2 glass-card text-[10px] font-mono uppercase tracking-widest hover:text-red-500">Chunk: {isChunking ? "ON" : "OFF"}</button>
             <button onClick={() => setIsAllCaps(!isAllCaps)} className="px-4 py-2 glass-card text-[10px] font-mono uppercase tracking-widest hover:text-red-500">Case</button>
             <div className="flex items-center glass-card px-4 py-1 gap-4">
                <input type="range" min="100" max="1000" step="50" value={wpm} onChange={(e) => setWpm(parseInt(e.target.value))} className="w-24 accent-red-600 cursor-pointer" />
@@ -157,16 +155,6 @@ export default function ReaderPage() {
         <section className={`${zenMode ? 'fixed inset-0 flex items-center justify-center' : 'col-span-9'}`}>
           <div className={`glass-card neural-glow aspect-video flex items-center justify-center relative overflow-hidden transition-all ${zenMode ? 'w-full h-full rounded-none border-none' : ''}`}>
             
-            {showArchive && !zenMode && (
-              <div className="absolute inset-0 z-50 bg-[#030712]/95 p-12 overflow-y-auto animate-in fade-in zoom-in-95">
-                <div className="flex justify-between mb-8 border-b border-white/10 pb-4">
-                  <h3 className="text-[10px] font-mono text-red-500 uppercase tracking-widest">Raw Data Archive</h3>
-                  <button onClick={() => setShowArchive(false)} className="text-[10px] font-mono text-slate-500 hover:text-white uppercase">Close</button>
-                </div>
-                <p className="text-slate-300 leading-relaxed font-mono text-sm whitespace-pre-wrap">{fullRawText}</p>
-              </div>
-            )}
-
             <div className="absolute top-8 right-10 text-right z-20">
                 <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Est. Completion</div>
                 <div className="text-2xl font-black text-red-500">{stats.time} <span className="text-[10px] text-white uppercase">Min</span></div>
@@ -178,10 +166,10 @@ export default function ReaderPage() {
             </div>
 
             <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5">
-                <div className="h-full bg-red-600 transition-all duration-300 shadow-[0_0_10px_rgba(220,38,38,0.5)]" style={{ width: `${stats.progress}%` }} />
+                <div className="h-full bg-red-600 transition-all duration-300" style={{ width: `${stats.progress}%` }} />
             </div>
 
-            <div className={`relative w-full px-12 transition-all ${zenMode ? 'text-8xl md:text-[14rem]' : 'text-6xl md:text-9xl'}`}>
+            <div className={`relative w-full px-12 transition-all`}>
               {renderFixedWord(text)}
             </div>
           </div>
