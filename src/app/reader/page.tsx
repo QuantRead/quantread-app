@@ -8,9 +8,25 @@ export default function ReaderPage() {
   const [index, setIndex] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [zenMode, setZenMode] = useState(false);
-  const [isAllCaps, setIsAllCaps] = useState(true);
   const [history, setHistory] = useState<string[]>([]);
+  
+  // MEMORY INITIALIZATION
+  const [isAllCaps, setIsAllCaps] = useState(true);
   const [wpm, setWpm] = useState(400);
+
+  // Load preferences on mount
+  useEffect(() => {
+    const savedWpm = localStorage.getItem('quantread_wpm');
+    const savedCase = localStorage.getItem('quantread_allcaps');
+    if (savedWpm) setWpm(parseInt(savedWpm));
+    if (savedCase) setIsAllCaps(savedCase === 'true');
+  }, []);
+
+  // Save preferences when they change
+  useEffect(() => {
+    localStorage.setItem('quantread_wpm', wpm.toString());
+    localStorage.setItem('quantread_allcaps', isAllCaps.toString());
+  }, [wpm, isAllCaps]);
 
   const stats = useMemo(() => {
     const total = words.length;
@@ -28,7 +44,6 @@ export default function ReaderPage() {
     };
   }, [words, index, wpm]);
 
-  // ACHIEVEMENT SYSTEM: Logs milestones to History
   const logAchievement = (message: string) => {
     setHistory(prev => [`[ACHIEVEMENT] ${message}`, ...prev]);
   };
@@ -42,10 +57,10 @@ export default function ReaderPage() {
     const partRight = displayWord.substring(midpoint + 1);
 
     return (
-      <div className={`flex w-full justify-center items-center font-black italic tracking-tighter text-white transition-all ${isAllCaps ? 'uppercase' : ''} ${stats.isHighSpeed && isActive ? 'animate-pulse' : ''}`}>
-        <div className={`w-1/2 text-right pr-[2px] opacity-80 ${stats.isHighSpeed && isActive ? 'blur-[0.5px]' : ''}`}>{partLeft}</div>
+      <div className={`flex w-full justify-center items-center font-black italic tracking-tighter text-white transition-all`}>
+        <div className="w-1/2 text-right pr-[2px] opacity-100">{partLeft}</div>
         <div className="text-red-600 scale-125 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)] z-30">{pivot}</div>
-        <div className={`w-1/2 text-left pl-[2px] opacity-80 ${stats.isHighSpeed && isActive ? 'blur-[0.5px]' : ''}`}>{partRight}</div>
+        <div className="w-1/2 text-left pl-[2px] opacity-100">{partRight}</div>
       </div>
     );
   };
@@ -73,12 +88,21 @@ export default function ReaderPage() {
         setText(words[index]);
         setIndex(prev => prev + 1);
       }, ms);
-    } else if (index >= words.length && words.length > 5) { // Ensure it was a real session
+    } else if (index >= words.length && words.length > 5) {
       setIsActive(false);
       logAchievement(`SESSION COMPLETE: ${words.length} WORDS @ ${wpm} WPM (${stats.tier})`);
     }
     return () => clearInterval(interval);
   }, [isActive, index, words, wpm, stats.tier]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space") { e.preventDefault(); setIsActive(prev => !prev); }
+      if (e.code === "Escape" && zenMode) { setZenMode(false); }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [zenMode]);
 
   return (
     <main className={`min-h-screen p-8 transition-all duration-700 ${zenMode ? 'bg-black' : 'bg-[#030712]'}`}>
@@ -113,37 +137,28 @@ export default function ReaderPage() {
         )}
 
         <section className={`${zenMode ? 'fixed inset-0 flex items-center justify-center' : 'col-span-9'}`}>
-          <div className={`glass-card neural-glow aspect-video flex items-center justify-center relative overflow-hidden transition-all ${zenMode ? 'w-full h-full rounded-none border-none' : ''} ${stats.isHighSpeed && isActive ? 'shadow-[0_0_60px_rgba(220,38,38,0.2)]' : ''}`}>
-            
+          <div className={`glass-card neural-glow aspect-video flex items-center justify-center relative overflow-hidden transition-all ${zenMode ? 'w-full h-full rounded-none border-none' : ''}`}>
             <div className="absolute top-8 right-10 text-right z-20">
                 <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Est. Completion</div>
-                <div className={`text-2xl font-black transition-colors ${stats.isHighSpeed ? 'text-red-600' : 'text-red-500'}`}>{stats.time} <span className="text-[10px] text-white uppercase">Min</span></div>
+                <div className="text-2xl font-black text-red-500">{stats.time} <span className="text-[10px] text-white uppercase">Min</span></div>
             </div>
-
             <div className="absolute bottom-8 left-10 z-20">
                 <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{stats.tier} INTERFACE</div>
                 <div className="text-xl font-bold text-white">{stats.current} / {stats.count} <span className="text-[8px] text-slate-600 uppercase">Words</span></div>
             </div>
-
             <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5">
-                <div className={`h-full transition-all duration-300 ${stats.isHighSpeed ? 'bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.8)]' : 'bg-red-600'}`} style={{ width: `${stats.progress}%` }} />
+                <div className="h-full bg-red-600 transition-all duration-300" style={{ width: `${stats.progress}%` }} />
             </div>
-
-            {stats.isHighSpeed && isActive && (
-              <div className="absolute inset-0 pointer-events-none opacity-20 bg-[url('https://www.transparenttextures.com/patterns/asfalt-dark.png')] animate-pulse z-40" />
-            )}
-
-            <div className={`relative w-full transition-all ${zenMode ? 'text-8xl md:text-[14rem]' : 'text-6xl md:text-9xl'}`}>
+            {/* Added container padding to prevent word clipping */}
+            <div className={`relative w-full px-12 transition-all ${zenMode ? 'text-8xl md:text-[14rem]' : 'text-6xl md:text-9xl'}`}>
               {renderFixedWord(text)}
             </div>
-
             {zenMode && (
               <div className={`absolute bottom-10 left-1/2 -translate-x-1/2 text-[8px] font-mono tracking-[0.5em] uppercase ${stats.isHighSpeed ? 'text-red-500' : 'text-slate-700'}`}>
                 {isActive ? "NEURAL LINK ACTIVE" : "LINK PAUSED"} | SPACE: TOGGLE | ESC: EXIT
               </div>
             )}
           </div>
-          
           {!zenMode && (
             <div className="mt-8 flex justify-center">
               <button onClick={() => setIsActive(!isActive)} className="px-16 py-5 bg-red-600 text-white font-black uppercase tracking-[0.2em] skew-x-[-12deg] active:scale-95 transition-all">
