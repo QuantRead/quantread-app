@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 export default function ReaderPage() {
-  const [text, setText] = useState("SYSTEM ONLINE");
+  const [text, setText] = useState("READY"); // Shortened initial text
   const [fullRawText, setFullRawText] = useState("");
   const [words, setWords] = useState(["Awaiting", "Neural", "Data", "Beam..."]);
   const [index, setIndex] = useState(0);
@@ -13,7 +13,7 @@ export default function ReaderPage() {
   const [history, setHistory] = useState<string[]>([]);
   const [isAllCaps, setIsAllCaps] = useState(true);
   const [wpm, setWpm] = useState(400);
-  const [showZenControls, setShowZenControls] = useState(false); // HUD state
+  const [showZenControls, setShowZenControls] = useState(false);
 
   useEffect(() => {
     const savedWpm = localStorage.getItem('quantread_wpm');
@@ -34,7 +34,7 @@ export default function ReaderPage() {
     const remainingWords = total - current;
     const minutes = Math.ceil(remainingWords / (wpm || 400));
     const isComplete = index >= total && total > 5;
-    return { count: total, current, progress, time: minutes, isComplete };
+    return { count: total, current, progress, time: minutes, isHighSpeed: wpm >= 600, isComplete };
   }, [words, index, wpm]);
 
   const renderFixedWord = (word: string) => {
@@ -60,9 +60,9 @@ export default function ReaderPage() {
         const newText = event.data.text;
         setFullRawText(newText);
         setWords(newText.trim().split(/\s+/));
-        setHistory(prev => [`[BEAM RECEIVED] ${newText.substring(0, 20)}...`, ...prev]);
+        setHistory(prev => [`[BEAMED] ${newText.substring(0, 20)}...`, ...prev]);
         setIndex(0);
-        setText("BEAM RECEIVED");
+        setText("BEAMED"); // Shortened handshake message
         window.focus(); 
       }
     };
@@ -85,20 +85,15 @@ export default function ReaderPage() {
     return () => clearInterval(interval);
   }, [isActive, index, words, wpm, stats.isComplete]);
 
-  // KEYBOARD PROTOCOL: Space, Esc, and Zen HUD logic
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space") { e.preventDefault(); setIsActive(prev => !prev); }
-      if (e.code === "Escape") { 
-          setIsActive(false); 
-          setZenMode(false); 
-      }
+      if (e.code === "Escape") { setIsActive(false); setZenMode(false); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Mouse HUD logic
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     const handleMouseMove = () => {
@@ -113,14 +108,13 @@ export default function ReaderPage() {
   return (
     <main className={`min-h-screen p-8 transition-all duration-700 ${zenMode ? 'bg-black cursor-none' : 'bg-[#030712]'}`}>
       
-      {/* ZEN HUD OVERLAY */}
       {zenMode && (
         <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[60] flex gap-4 transition-opacity duration-500 ${showZenControls ? 'opacity-100' : 'opacity-0'}`}>
           <button onClick={() => setIsActive(!isActive)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">
-            {isActive ? "Pause (Space)" : "Resume (Space)"}
+            {isActive ? "Pause" : "Resume"}
           </button>
           <button onClick={() => setZenMode(false)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">
-            Exit Zen (Esc)
+            Exit Zen
           </button>
         </div>
       )}
@@ -134,10 +128,10 @@ export default function ReaderPage() {
           <div className="flex gap-4">
             {fullRawText && (
               <button onClick={() => setShowArchive(!showArchive)} className="px-4 py-2 glass-card text-[10px] font-mono uppercase tracking-widest hover:text-red-500">
-                {showArchive ? "Close Source" : "Full Text"}
+                {showArchive ? "Close" : "Full Text"}
               </button>
             )}
-            <button onClick={() => setIsAllCaps(!isAllCaps)} className="px-4 py-2 glass-card text-[10px] font-mono uppercase tracking-widest hover:text-red-500">Case: {isAllCaps ? "All" : "Std"}</button>
+            <button onClick={() => setIsAllCaps(!isAllCaps)} className="px-4 py-2 glass-card text-[10px] font-mono uppercase tracking-widest hover:text-red-500">Case</button>
             <div className="flex items-center glass-card px-4 py-1 gap-4">
                <input type="range" min="100" max="1000" step="50" value={wpm} onChange={(e) => setWpm(parseInt(e.target.value))} className="w-24 accent-red-600 cursor-pointer" />
                <span className="text-[10px] font-mono w-12">{wpm} WPM</span>
@@ -169,7 +163,7 @@ export default function ReaderPage() {
                   <h3 className="text-[10px] font-mono text-red-500 uppercase tracking-widest">Raw Data Archive</h3>
                   <button onClick={() => setShowArchive(false)} className="text-[10px] font-mono text-slate-500 hover:text-white uppercase">Close</button>
                 </div>
-                <p className="text-slate-300 leading-relaxed font-mono text-sm">{fullRawText}</p>
+                <p className="text-slate-300 leading-relaxed font-mono text-sm whitespace-pre-wrap">{fullRawText}</p>
               </div>
             )}
 
@@ -184,7 +178,7 @@ export default function ReaderPage() {
             </div>
 
             <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5">
-                <div className="h-full bg-red-600 transition-all duration-300" style={{ width: `${stats.progress}%` }} />
+                <div className="h-full bg-red-600 transition-all duration-300 shadow-[0_0_10px_rgba(220,38,38,0.5)]" style={{ width: `${stats.progress}%` }} />
             </div>
 
             <div className={`relative w-full px-12 transition-all ${zenMode ? 'text-8xl md:text-[14rem]' : 'text-6xl md:text-9xl'}`}>
