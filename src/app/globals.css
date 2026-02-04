@@ -11,4 +11,5 @@ body {
   color: var(--foreground);
   background: var(--background);
   margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
