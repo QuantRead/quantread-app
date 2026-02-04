@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-cyber-dark: #020617;
-  --color-quant-red: #dc2626;
+  --color-cyber-bg: #030712;
+  --color-quant-red: #ef4444;
+  --color-glass: rgba(15, 23, 42, 0.6);
 }
 
 :root {
-  --background: #020617;
+  --background: #030712;
   --foreground: #ffffff;
 }
 
@@ -14,20 +15,28 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Inter', system-ui, sans-serif;
-  overflow-x: hidden;
+  letter-spacing: -0.02em;
 }
 
-/* The "Soft Look" Gradients */
-.soft-glow {
-  background: radial-gradient(circle at center, rgba(220, 38, 38, 0.05) 0%, transparent 70%);
-}
-
-.glass-panel {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(12px);
+.glass-card {
+  background: var(--color-glass);
+  backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
 }
 
-* {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.neural-glow {
+  box-shadow: 0 0 40px -10px rgba(239, 68, 68, 0.15);
+}
+
+/* Custom scrollbar for Neural History */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
 }
