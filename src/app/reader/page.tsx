@@ -12,7 +12,7 @@ export default function ReaderPage() {
   const [showArchive, setShowArchive] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
   const [isAllCaps, setIsAllCaps] = useState(true);
-  const [isChunking, setIsChunking] = useState(false); // New: Chunking State
+  const [isChunking, setIsChunking] = useState(false);
   const [wpm, setWpm] = useState(400);
   const [showZenControls, setShowZenControls] = useState(false);
 
@@ -41,15 +41,14 @@ export default function ReaderPage() {
     return { count: total, current, progress, time: minutes, isComplete };
   }, [words, index, wpm]);
 
-  // DYNAMIC RENDERER: Handles single word or chunked words with scaling
   const renderFixedWord = (word: string) => {
     if (!word) return null;
     const displayWord = isAllCaps ? word.toUpperCase() : word;
     
-    // Dynamic Font Scaling: Shrink font if word/chunk is long
+    // ADJUSTED SCALING: Added more aggressive shrinking for chunks
     const baseSize = zenMode ? "text-8xl md:text-[14rem]" : "text-6xl md:text-9xl";
-    const shrinkSize = zenMode ? "text-6xl md:text-[9rem]" : "text-4xl md:text-7xl";
-    const useSmallFont = displayWord.length > 12;
+    const shrinkSize = zenMode ? "text-6xl md:text-[8rem]" : "text-4xl md:text-6xl";
+    const useSmallFont = displayWord.length > (isChunking ? 10 : 12);
 
     const midpoint = Math.floor(displayWord.length / 2);
     const partLeft = displayWord.substring(0, midpoint);
@@ -57,10 +56,19 @@ export default function ReaderPage() {
     const partRight = displayWord.substring(midpoint + 1);
 
     return (
-      <div className={`flex w-full justify-center items-center font-black italic tracking-tighter text-white transition-all gap-x-[1px] ${useSmallFont ? shrinkSize : baseSize}`}>
-        <div className="flex-1 text-right opacity-100 min-w-0 overflow-visible">{partLeft}</div>
-        <div className="text-red-600 scale-125 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)] z-30 px-1">{pivot}</div>
-        <div className="flex-1 text-left opacity-100 min-w-0 overflow-visible">{partRight}</div>
+      <div className={`flex w-full justify-center items-center font-black italic tracking-tighter text-white transition-all ${useSmallFont ? shrinkSize : baseSize}`}>
+        {/* AXIS SPACING: Increased padding around the pivot */}
+        <div className="flex-1 text-right opacity-100 pr-4 md:pr-8">{partLeft}</div>
+        
+        <div className="relative flex items-center justify-center">
+            {/* VERTICAL ANCHOR: Hard axis for eye focus */}
+            <div className="absolute h-32 md:h-64 w-[1px] bg-white/10 z-10" />
+            <div className="text-red-600 scale-125 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)] z-30 px-2 md:px-4 bg-[#030712]">
+                {pivot}
+            </div>
+        </div>
+        
+        <div className="flex-1 text-left opacity-100 pl-4 md:pl-8">{partRight}</div>
       </div>
     );
   };
@@ -87,13 +95,14 @@ export default function ReaderPage() {
       const ms = (60 / wpm) * 1000;
       interval = setInterval(() => {
         if (isChunking && index + 1 < words.length) {
-          setText(`${words[index]} ${words[index + 1]}`);
+          // ADDED SPACER: Extra gap between chunked words
+          setText(`${words[index]}   ${words[index + 1]}`);
           setIndex(prev => prev + 2);
         } else {
           setText(words[index]);
           setIndex(prev => prev + 1);
         }
-      }, isChunking ? ms * 1.8 : ms); // Slight delay for chunks to allow processing
+      }, isChunking ? ms * 1.6 : ms);
     } else if (stats.isComplete && isActive) {
       setIsActive(false);
       setHistory(prev => [`[COMPLETE] ${words.length} WORDS @ ${wpm} WPM`, ...prev]);
@@ -169,7 +178,7 @@ export default function ReaderPage() {
                 <div className="h-full bg-red-600 transition-all duration-300" style={{ width: `${stats.progress}%` }} />
             </div>
 
-            <div className={`relative w-full px-12 transition-all`}>
+            <div className={`relative w-full px-4 transition-all`}>
               {renderFixedWord(text)}
             </div>
           </div>
