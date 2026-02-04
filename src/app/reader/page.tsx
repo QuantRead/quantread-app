@@ -30,7 +30,6 @@ export default function ReaderPage() {
     localStorage.setItem('quantread_allcaps', isAllCaps.toString());
   }, [wpm, isAllCaps]);
 
-  // Auto-focus manual input box when opened
   useEffect(() => {
     if (showInput && inputRef.current) {
       inputRef.current.focus();
@@ -58,7 +57,7 @@ export default function ReaderPage() {
     }
   };
 
-  // Visual Style: Matches Image 2 (image_6b6cde) with NO background box
+  // Fixed Style: Removed all background-based padding/divs to eliminate phantom boxes
   const renderFixedWord = (word: string) => {
     if (!word) return null;
     const displayWord = isAllCaps ? word.toUpperCase() : word;
@@ -68,10 +67,10 @@ export default function ReaderPage() {
     const partRight = displayWord.substring(midpoint + 1);
 
     return (
-      <div className="flex w-full justify-center items-center font-black italic tracking-tighter text-white transition-all gap-x-[1px]">
-        <div className="flex-1 text-right opacity-100 min-w-0 overflow-visible pr-2 md:pr-10">{partLeft}</div>
-        <div className="text-red-600 scale-125 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)] z-30 px-1 md:px-2">{pivot}</div>
-        <div className="flex-1 text-left opacity-100 min-w-0 overflow-visible pl-2 md:pl-10">{partRight}</div>
+      <div className="flex w-full justify-center items-center font-black italic tracking-tighter text-white transition-all">
+        <div className="flex-1 text-right opacity-100 min-w-0 overflow-visible pr-[1px] md:pr-[2px]">{partLeft}</div>
+        <span className="text-red-600 scale-125 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)] z-30 inline-block">{pivot}</span>
+        <div className="flex-1 text-left opacity-100 min-w-0 overflow-visible pl-[1px] md:pl-[2px]">{partRight}</div>
       </div>
     );
   };
@@ -129,20 +128,14 @@ export default function ReaderPage() {
 
   return (
     <main className={`min-h-screen p-4 md:p-8 transition-all duration-700 ${zenMode ? 'bg-black cursor-none' : 'bg-[#030712]'}`}>
-      
-      {/* Mobile Orientation Tip */}
       <div className="md:hidden portrait:block hidden fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-[8px] font-bold px-3 py-1 rounded-full animate-pulse">
         ROTATE DEVICE FOR DECK
       </div>
 
       {zenMode && (
         <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[60] flex gap-4 transition-opacity duration-500 ${showZenControls ? 'opacity-100' : 'opacity-0'}`}>
-          <button onClick={() => setIsActive(!isActive)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">
-            {isActive ? "Pause" : "Resume"}
-          </button>
-          <button onClick={() => setZenMode(false)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">
-            Exit Zen
-          </button>
+          <button onClick={() => setIsActive(!isActive)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">{isActive ? "Pause" : "Resume"}</button>
+          <button onClick={() => setZenMode(false)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">Exit Zen</button>
         </div>
       )}
 
@@ -179,7 +172,6 @@ export default function ReaderPage() {
 
         <section className={`${zenMode ? 'fixed inset-0 flex items-center justify-center' : 'col-span-1 md:col-span-9'}`}>
           <div className={`glass-card neural-glow aspect-video flex items-center justify-center relative overflow-hidden transition-all ${zenMode ? 'w-full h-full rounded-none border-none' : ''}`}>
-            
             {showInput && (
               <div className="absolute inset-0 z-50 bg-[#030712]/98 p-6 md:p-12 flex flex-col gap-6 animate-in fade-in">
                 <div className="flex justify-between border-b border-white/10 pb-4">
@@ -193,9 +185,7 @@ export default function ReaderPage() {
                   value={manualText}
                   onChange={(e) => setManualText(e.target.value)}
                 />
-                <button onClick={handleLoadManual} className="w-full py-4 bg-red-600 text-white font-black uppercase tracking-widest active:scale-95 transition-all">
-                  Initialize Data
-                </button>
+                <button onClick={handleLoadManual} className="w-full py-4 bg-red-600 text-white font-black uppercase tracking-widest active:scale-95 transition-all">Initialize Data</button>
               </div>
             )}
 
