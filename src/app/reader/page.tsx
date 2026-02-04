@@ -45,7 +45,6 @@ export default function ReaderPage() {
     if (!word) return null;
     const displayWord = isAllCaps ? word.toUpperCase() : word;
     
-    // ADJUSTED SCALING: Added more aggressive shrinking for chunks
     const baseSize = zenMode ? "text-8xl md:text-[14rem]" : "text-6xl md:text-9xl";
     const shrinkSize = zenMode ? "text-6xl md:text-[8rem]" : "text-4xl md:text-6xl";
     const useSmallFont = displayWord.length > (isChunking ? 10 : 12);
@@ -57,18 +56,12 @@ export default function ReaderPage() {
 
     return (
       <div className={`flex w-full justify-center items-center font-black italic tracking-tighter text-white transition-all ${useSmallFont ? shrinkSize : baseSize}`}>
-        {/* AXIS SPACING: Increased padding around the pivot */}
-        <div className="flex-1 text-right opacity-100 pr-4 md:pr-8">{partLeft}</div>
-        
-        <div className="relative flex items-center justify-center">
-            {/* VERTICAL ANCHOR: Hard axis for eye focus */}
-            <div className="absolute h-32 md:h-64 w-[1px] bg-white/10 z-10" />
-            <div className="text-red-600 scale-125 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)] z-30 px-2 md:px-4 bg-[#030712]">
-                {pivot}
-            </div>
+        {/* Pure ORP: No guides, no lines, just the axis-aligned text */}
+        <div className="flex-1 text-right opacity-100 pr-4 md:pr-10">{partLeft}</div>
+        <div className="text-red-600 scale-125 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)] z-30 px-2 md:px-4 bg-[#030712]">
+            {pivot}
         </div>
-        
-        <div className="flex-1 text-left opacity-100 pl-4 md:pl-8">{partRight}</div>
+        <div className="flex-1 text-left opacity-100 pl-4 md:pl-10">{partRight}</div>
       </div>
     );
   };
@@ -95,7 +88,6 @@ export default function ReaderPage() {
       const ms = (60 / wpm) * 1000;
       interval = setInterval(() => {
         if (isChunking && index + 1 < words.length) {
-          // ADDED SPACER: Extra gap between chunked words
           setText(`${words[index]}   ${words[index + 1]}`);
           setIndex(prev => prev + 2);
         } else {
@@ -175,7 +167,7 @@ export default function ReaderPage() {
             </div>
 
             <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5">
-                <div className="h-full bg-red-600 transition-all duration-300" style={{ width: `${stats.progress}%` }} />
+                <div className="h-full bg-red-600 transition-all duration-300 shadow-[0_0_10px_rgba(220,38,38,0.5)]" style={{ width: `${stats.progress}%` }} />
             </div>
 
             <div className={`relative w-full px-4 transition-all`}>
