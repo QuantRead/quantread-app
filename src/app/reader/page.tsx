@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 
 export default function ReaderPage() {
@@ -10,12 +10,13 @@ export default function ReaderPage() {
   const [isActive, setIsActive] = useState(false);
   const [zenMode, setZenMode] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
-  const [showInput, setShowInput] = useState(false); // Manual Input Toggle
+  const [showInput, setShowInput] = useState(false);
   const [manualText, setManualText] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [isAllCaps, setIsAllCaps] = useState(true);
   const [wpm, setWpm] = useState(400);
   const [showZenControls, setShowZenControls] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const savedWpm = localStorage.getItem('quantread_wpm');
@@ -29,6 +30,13 @@ export default function ReaderPage() {
     localStorage.setItem('quantread_allcaps', isAllCaps.toString());
   }, [wpm, isAllCaps]);
 
+  // Auto-focus manual input box when opened
+  useEffect(() => {
+    if (showInput && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [showInput]);
+
   const stats = useMemo(() => {
     const total = words.length;
     const current = index;
@@ -39,7 +47,6 @@ export default function ReaderPage() {
     return { count: total, current, progress, time: minutes, isHighSpeed: wpm >= 600, isComplete };
   }, [words, index, wpm]);
 
-  // Handle manual data loading
   const handleLoadManual = () => {
     if (manualText.trim()) {
       setFullRawText(manualText);
@@ -51,6 +58,7 @@ export default function ReaderPage() {
     }
   };
 
+  // Visual Style: Matches Image 2 (image_6b6cde) with NO background box
   const renderFixedWord = (word: string) => {
     if (!word) return null;
     const displayWord = isAllCaps ? word.toUpperCase() : word;
@@ -62,7 +70,7 @@ export default function ReaderPage() {
     return (
       <div className="flex w-full justify-center items-center font-black italic tracking-tighter text-white transition-all gap-x-[1px]">
         <div className="flex-1 text-right opacity-100 min-w-0 overflow-visible pr-2 md:pr-10">{partLeft}</div>
-        <div className="text-red-600 scale-125 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)] z-30 px-1 md:px-2 bg-[#030712]">{pivot}</div>
+        <div className="text-red-600 scale-125 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)] z-30 px-1 md:px-2">{pivot}</div>
         <div className="flex-1 text-left opacity-100 min-w-0 overflow-visible pl-2 md:pl-10">{partRight}</div>
       </div>
     );
@@ -122,7 +130,7 @@ export default function ReaderPage() {
   return (
     <main className={`min-h-screen p-4 md:p-8 transition-all duration-700 ${zenMode ? 'bg-black cursor-none' : 'bg-[#030712]'}`}>
       
-      {/* Rotation Reminder (Mobile Only) */}
+      {/* Mobile Orientation Tip */}
       <div className="md:hidden portrait:block hidden fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-[8px] font-bold px-3 py-1 rounded-full animate-pulse">
         ROTATE DEVICE FOR DECK
       </div>
@@ -152,6 +160,7 @@ export default function ReaderPage() {
                <span className="text-[10px] font-mono">{wpm}</span>
             </div>
             <button onClick={() => setZenMode(true)} className="px-3 py-2 glass-card text-[10px] font-mono uppercase tracking-widest hover:text-red-500">Zen</button>
+            <Link href="/" className="px-3 py-2 glass-card text-[10px] font-mono uppercase tracking-widest hover:text-red-500">Exit</Link>
           </div>
         </header>
       )}
@@ -171,7 +180,6 @@ export default function ReaderPage() {
         <section className={`${zenMode ? 'fixed inset-0 flex items-center justify-center' : 'col-span-1 md:col-span-9'}`}>
           <div className={`glass-card neural-glow aspect-video flex items-center justify-center relative overflow-hidden transition-all ${zenMode ? 'w-full h-full rounded-none border-none' : ''}`}>
             
-            {/* Input Portal */}
             {showInput && (
               <div className="absolute inset-0 z-50 bg-[#030712]/98 p-6 md:p-12 flex flex-col gap-6 animate-in fade-in">
                 <div className="flex justify-between border-b border-white/10 pb-4">
@@ -179,6 +187,7 @@ export default function ReaderPage() {
                   <button onClick={() => setShowInput(false)} className="text-[10px] font-mono text-slate-500 uppercase">Close</button>
                 </div>
                 <textarea 
+                  ref={inputRef}
                   className="flex-1 bg-transparent border border-white/5 rounded-xl p-4 text-xs font-mono text-slate-300 focus:outline-none focus:border-red-600 transition-all"
                   placeholder="PASTE TEXT HERE..."
                   value={manualText}
@@ -190,7 +199,6 @@ export default function ReaderPage() {
               </div>
             )}
 
-            {/* Archive Overlay */}
             {showArchive && !zenMode && (
               <div className="absolute inset-0 z-50 bg-[#030712]/95 p-12 overflow-y-auto animate-in fade-in zoom-in-95">
                 <div className="flex justify-between mb-8 border-b border-white/10 pb-4">
@@ -220,15 +228,9 @@ export default function ReaderPage() {
           
           {!zenMode && (
             <div className="mt-8 flex justify-center gap-4">
-              {stats.isComplete ? (
-                <button onClick={() => setIndex(0)} className="w-full md:w-auto px-16 py-5 border border-red-600 text-red-600 font-black uppercase tracking-[0.2em] skew-x-[-12deg] hover:bg-red-600 hover:text-white transition-all">
-                  <span className="block skew-x-[12deg]">Re-Initiate</span>
-                </button>
-              ) : (
-                <button onClick={() => setIsActive(!isActive)} className="w-full md:w-auto px-16 py-5 bg-red-600 text-white font-black uppercase tracking-[0.2em] skew-x-[-12deg] active:scale-95 transition-all">
-                  <span className="block skew-x-[12deg]">{isActive ? "Terminate" : "Initiate"}</span>
-                </button>
-              )}
+              <button onClick={() => setIsActive(!isActive)} className="w-full md:w-auto px-16 py-5 bg-red-600 text-white font-black uppercase tracking-[0.2em] skew-x-[-12deg] active:scale-95 transition-all">
+                <span className="block skew-x-[12deg]">{isActive ? "Stop" : "Initiate"}</span>
+              </button>
             </div>
           )}
         </section>
