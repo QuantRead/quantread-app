@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export default function ReaderPage() {
   const [text, setText] = useState("SYSTEM ONLINE");
-  const [fullRawText, setFullRawText] = useState(""); // Archive for "View Full Text"
+  const [fullRawText, setFullRawText] = useState("");
   const [words, setWords] = useState(["Awaiting", "Neural", "Data", "Beam..."]);
   const [index, setIndex] = useState(0);
   const [isActive, setIsActive] = useState(false);
@@ -13,6 +13,7 @@ export default function ReaderPage() {
   const [history, setHistory] = useState<string[]>([]);
   const [isAllCaps, setIsAllCaps] = useState(true);
   const [wpm, setWpm] = useState(400);
+  const [showZenControls, setShowZenControls] = useState(false); // HUD state
 
   useEffect(() => {
     const savedWpm = localStorage.getItem('quantread_wpm');
@@ -33,10 +34,9 @@ export default function ReaderPage() {
     const remainingWords = total - current;
     const minutes = Math.ceil(remainingWords / (wpm || 400));
     const isComplete = index >= total && total > 5;
-    return { count: total, current, progress, time: minutes, isHighSpeed: wpm >= 600, isComplete };
+    return { count: total, current, progress, time: minutes, isComplete };
   }, [words, index, wpm]);
 
-  // FIXED ORP: Added 'gap-x-1' and flexible widths to prevent character overlap
   const renderFixedWord = (word: string) => {
     if (!word) return null;
     const displayWord = isAllCaps ? word.toUpperCase() : word;
@@ -85,8 +85,46 @@ export default function ReaderPage() {
     return () => clearInterval(interval);
   }, [isActive, index, words, wpm, stats.isComplete]);
 
+  // KEYBOARD PROTOCOL: Space, Esc, and Zen HUD logic
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space") { e.preventDefault(); setIsActive(prev => !prev); }
+      if (e.code === "Escape") { 
+          setIsActive(false); 
+          setZenMode(false); 
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Mouse HUD logic
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    const handleMouseMove = () => {
+      setShowZenControls(true);
+      clearTimeout(timeout);
+      timeout = setTimeout(() => setShowZenControls(false), 2000);
+    };
+    if (zenMode) window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [zenMode]);
+
   return (
-    <main className={`min-h-screen p-8 transition-all duration-700 ${zenMode ? 'bg-black' : 'bg-[#030712]'}`}>
+    <main className={`min-h-screen p-8 transition-all duration-700 ${zenMode ? 'bg-black cursor-none' : 'bg-[#030712]'}`}>
+      
+      {/* ZEN HUD OVERLAY */}
+      {zenMode && (
+        <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[60] flex gap-4 transition-opacity duration-500 ${showZenControls ? 'opacity-100' : 'opacity-0'}`}>
+          <button onClick={() => setIsActive(!isActive)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">
+            {isActive ? "Pause (Space)" : "Resume (Space)"}
+          </button>
+          <button onClick={() => setZenMode(false)} className="px-6 py-2 glass-card text-[10px] font-mono text-white uppercase tracking-widest hover:text-red-500">
+            Exit Zen (Esc)
+          </button>
+        </div>
+      )}
+
       {!zenMode && (
         <header className="max-w-7xl mx-auto flex justify-between items-start mb-8 text-white">
           <div>
@@ -104,7 +142,7 @@ export default function ReaderPage() {
                <input type="range" min="100" max="1000" step="50" value={wpm} onChange={(e) => setWpm(parseInt(e.target.value))} className="w-24 accent-red-600 cursor-pointer" />
                <span className="text-[10px] font-mono w-12">{wpm} WPM</span>
             </div>
-            <button onClick={() => setZenMode(!zenMode)} className="px-4 py-2 glass-card text-[10px] font-mono uppercase tracking-widest hover:text-red-500">Zen</button>
+            <button onClick={() => setZenMode(true)} className="px-4 py-2 glass-card text-[10px] font-mono uppercase tracking-widest hover:text-red-500">Zen</button>
             <Link href="/" className="px-4 py-2 glass-card text-[10px] font-mono uppercase tracking-widest hover:text-red-500">Exit</Link>
           </div>
         </header>
@@ -125,7 +163,6 @@ export default function ReaderPage() {
         <section className={`${zenMode ? 'fixed inset-0 flex items-center justify-center' : 'col-span-9'}`}>
           <div className={`glass-card neural-glow aspect-video flex items-center justify-center relative overflow-hidden transition-all ${zenMode ? 'w-full h-full rounded-none border-none' : ''}`}>
             
-            {/* FULL TEXT OVERLAY */}
             {showArchive && !zenMode && (
               <div className="absolute inset-0 z-50 bg-[#030712]/95 p-12 overflow-y-auto animate-in fade-in zoom-in-95">
                 <div className="flex justify-between mb-8 border-b border-white/10 pb-4">
@@ -157,7 +194,6 @@ export default function ReaderPage() {
           
           {!zenMode && (
             <div className="mt-8 flex justify-center gap-4">
-              {/* RE-INITIATE BUTTON: Appears when session is complete */}
               {stats.isComplete ? (
                 <button onClick={() => setIndex(0)} className="px-16 py-5 border border-red-600 text-red-600 font-black uppercase tracking-[0.2em] skew-x-[-12deg] hover:bg-red-600 hover:text-white transition-all">
                   <span className="block skew-x-[12deg]">Re-Initiate</span>
