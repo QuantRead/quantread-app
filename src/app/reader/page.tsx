@@ -3,44 +3,69 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function ReaderPage() {
-  const [text, setText] = useState("READY");
-  const [words, setWords] = useState(["SYSTEM", "READY.", "AWAITING", "NEURAL", "BEAM..."]);
+  const [text, setText] = useState("AWAITING BEAM");
+  const [words, setWords] = useState(["SYSTEM", "READY", "CONNECT", "EXTENSION", "TO", "BEAM", "DATA"]);
   const [index, setIndex] = useState(0);
   const [isActive, setIsActive] = useState(false);
+  const [wpm, setWpm] = useState(300);
+
+  // FIX: Listen for "Beamed" text from the Chrome Extension
+  useEffect(() => {
+    const handleBeam = (event: MessageEvent) => {
+      if (event.data.type === "QUANTREAD_BEAM") {
+        const newText = event.data.text;
+        setWords(newText.split(/\s+/));
+        setIndex(0);
+        setText("READY TO INTAKE");
+      }
+    };
+    window.addEventListener("message", handleBeam);
+    return () => window.removeEventListener("message", handleBeam);
+  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isActive && index < words.length) {
+      const ms = (60 / wpm) * 1000;
       interval = setInterval(() => {
         setText(words[index]);
-        setIndex((prev) => prev + 1);
-      }, 250);
+        setIndex(prev => prev + 1);
+      }, ms);
     } else if (index >= words.length) {
       setIsActive(false);
-      setIndex(0);
     }
     return () => clearInterval(interval);
-  }, [isActive, index, words]);
+  }, [isActive, index, words, wpm]);
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 font-sans">
-      <div className="w-full max-w-3xl aspect-video border border-red-500/20 bg-slate-900/5 flex items-center justify-center relative">
-        <h2 className="text-6xl md:text-8xl font-black tracking-widest uppercase italic">{text}</h2>
-        <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-red-600"></div>
-        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-red-600"></div>
+    <main className="min-h-screen bg-[#020617] flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Soft Background Glow */}
+      <div className="absolute inset-0 soft-glow pointer-events-none" />
+
+      <div className="w-full max-w-4xl glass-panel rounded-3xl p-16 md:p-32 relative z-10 text-center shadow-2xl">
+        <h2 className="text-5xl md:text-8xl font-black tracking-tighter italic uppercase text-white drop-shadow-2xl">
+          {text}
+        </h2>
+        
+        {/* Soft UI Accents */}
+        <div className="absolute top-8 left-10 text-[10px] font-mono text-red-500/50 tracking-[0.5em] uppercase">Neural Interface Active</div>
+        <div className="absolute bottom-8 right-10 flex items-center gap-2">
+           <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
+           <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{wpm} WPM</span>
+        </div>
       </div>
 
-      <div className="mt-16 flex gap-6">
+      <div className="fixed bottom-12 flex gap-4 z-20">
         <button 
-          onClick={() => { setIndex(0); setIsActive(true); }}
-          className="px-10 py-4 bg-red-600 hover:bg-red-500 font-black uppercase text-sm skew-x-[-12deg]"
+          onClick={() => setIsActive(!isActive)}
+          className="px-8 py-3 bg-red-600 hover:bg-red-500 text-white font-bold uppercase tracking-widest rounded-full shadow-lg shadow-red-900/20 active:scale-95"
         >
-          <span className="block skew-x-[12deg]">Start Intake</span>
+          {isActive ? "Pause" : "Initiate"}
         </button>
-        <Link href="/" className="px-10 py-4 border border-slate-800 hover:bg-slate-900 font-black uppercase text-sm skew-x-[-12deg]">
-          <span className="block skew-x-[12deg]">Exit</span>
+        <Link href="/" className="px-8 py-3 bg-slate-900/50 hover:bg-slate-800 text-slate-400 border border-white/5 font-bold uppercase tracking-widest rounded-full backdrop-blur-md">
+          Exit
         </Link>
       </div>
-    </div>
+    </main>
   );
 }

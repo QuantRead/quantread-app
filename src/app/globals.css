@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@theme {
+  --color-cyber-dark: #020617;
+  --color-quant-red: #dc2626;
+}
+
 :root {
   --background: #020617;
   --foreground: #ffffff;
@@ -8,10 +13,21 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  margin: 0;
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
 }
 
-html {
-  scroll-behavior: smooth;
+/* The "Soft Look" Gradients */
+.soft-glow {
+  background: radial-gradient(circle at center, rgba(220, 38, 38, 0.05) 0%, transparent 70%);
+}
+
+.glass-panel {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+* {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
