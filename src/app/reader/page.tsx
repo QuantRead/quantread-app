@@ -15,7 +15,7 @@ export default function ReaderPage() {
   const [history, setHistory] = useState<string[]>([]);
   const [isAllCaps, setIsAllCaps] = useState(true);
   const [wpm, setWpm] = useState(400);
-  const [theme, setTheme] = useState("ghost"); // ghost, slate, archive
+  const [theme, setTheme] = useState("ghost");
   const [showZenControls, setShowZenControls] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -34,12 +34,6 @@ export default function ReaderPage() {
     localStorage.setItem('quantread_theme', theme);
   }, [wpm, isAllCaps, theme]);
 
-  useEffect(() => {
-    if (showInput && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [showInput]);
-
   const stats = useMemo(() => {
     const total = words.length;
     const current = index;
@@ -47,13 +41,14 @@ export default function ReaderPage() {
     const remainingWords = total - current;
     const minutes = Math.ceil(remainingWords / (wpm || 400));
     const isComplete = index >= total && total > 5;
-    return { count: total, current, progress, time: minutes, isHighSpeed: wpm >= 600, isComplete };
+    return { count: total, current, progress, time: minutes, isComplete };
   }, [words, index, wpm]);
 
+  // UNIFIED RADIUS: Applied 'rounded-3xl' to every theme for consistency
   const themeStyles = {
-    ghost: { bg: 'bg-[#030712]', card: 'glass-card', pivot: 'text-red-600', text: 'text-white', bar: 'bg-red-600' },
-    slate: { bg: 'bg-[#0f172a]', card: 'border border-slate-700 bg-slate-900/50', pivot: 'text-sky-400', text: 'text-white', bar: 'bg-sky-500' },
-    archive: { bg: 'bg-[#f5f5dc]', card: 'border border-[#d2b48c] bg-[#fffaf0]', pivot: 'text-black', text: 'text-stone-800', bar: 'bg-stone-800' }
+    ghost: { bg: 'bg-[#030712]', card: 'glass-card rounded-3xl', pivot: 'text-red-600', text: 'text-white', bar: 'bg-red-600' },
+    slate: { bg: 'bg-[#0f172a]', card: 'border border-slate-700 bg-slate-900/50 rounded-3xl', pivot: 'text-sky-400', text: 'text-white', bar: 'bg-sky-500' },
+    archive: { bg: 'bg-[#f5f5dc]', card: 'border border-[#d2b48c] bg-[#fffaf0] rounded-3xl', pivot: 'text-black', text: 'text-stone-800', bar: 'bg-stone-800' }
   };
   const activeTheme = theme === 'archive' ? themeStyles.archive : theme === 'slate' ? themeStyles.slate : themeStyles.ghost;
 
@@ -116,20 +111,15 @@ export default function ReaderPage() {
     return () => clearInterval(interval);
   }, [isActive, index, words, wpm, stats.isComplete]);
 
-  // RESTORED: Zen Mode keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space") { e.preventDefault(); setIsActive(prev => !prev); }
-      if (e.code === "Escape") { 
-          setIsActive(false); 
-          setZenMode(false); 
-      }
+      if (e.code === "Escape") { setIsActive(false); setZenMode(false); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // RESTORED: Zen Mode mouse movement HUD
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     const handleMouseMove = () => {
@@ -151,6 +141,12 @@ export default function ReaderPage() {
             <span className="text-[8px] md:text-[9px] font-mono text-slate-500 tracking-[0.4em] uppercase">Experimental Speed Deck</span>
           </div>
           <div className="flex flex-wrap justify-center gap-2 md:gap-4">
+            {/* FULL TEXT ARCHIVE BUTTON */}
+            {fullRawText && (
+                <button onClick={() => setShowArchive(!showArchive)} className={`px-3 py-2 ${activeTheme.card} text-[10px] font-mono uppercase tracking-widest ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>
+                    {showArchive ? "Hide Text" : "Full Text"}
+                </button>
+            )}
             <button onClick={() => {
                 const themes = ["ghost", "slate", "archive"];
                 const next = themes[(themes.indexOf(theme) + 1) % themes.length];
@@ -163,7 +159,6 @@ export default function ReaderPage() {
                <span className={`text-[10px] font-mono ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>{wpm}</span>
             </div>
             <button onClick={() => setZenMode(true)} className={`px-3 py-2 ${activeTheme.card} text-[10px] font-mono uppercase tracking-widest ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>Zen</button>
-            <Link href="/" className={`px-3 py-2 ${activeTheme.card} text-[10px] font-mono uppercase tracking-widest ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>Exit</Link>
           </div>
         </header>
       )}
@@ -183,22 +178,28 @@ export default function ReaderPage() {
         <section className={`${zenMode ? 'fixed inset-0 flex items-center justify-center' : 'col-span-1 md:col-span-9'}`}>
           <div className={`${activeTheme.card} neural-glow aspect-video flex items-center justify-center relative overflow-hidden transition-all ${zenMode ? 'w-full h-full rounded-none border-none' : ''}`}>
             
-            {/* RESTORED: Zen HUD Controls */}
             {zenMode && (
                 <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[60] flex gap-4 transition-opacity duration-500 ${showZenControls ? 'opacity-100' : 'opacity-0'}`}>
-                    <button onClick={() => setIsActive(!isActive)} className={`px-6 py-2 ${activeTheme.card} text-[10px] font-mono uppercase tracking-widest ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>
-                        {isActive ? "Pause" : "Resume"}
-                    </button>
-                    <button onClick={() => setZenMode(false)} className={`px-6 py-2 ${activeTheme.card} text-[10px] font-mono uppercase tracking-widest ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>
-                        Exit Zen (Esc)
-                    </button>
+                    <button onClick={() => setIsActive(!isActive)} className={`px-6 py-2 ${activeTheme.card} text-[10px] font-mono uppercase tracking-widest ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>{isActive ? "Pause" : "Resume"}</button>
+                    <button onClick={() => setZenMode(false)} className={`px-6 py-2 ${activeTheme.card} text-[10px] font-mono uppercase tracking-widest ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>Exit Zen (Esc)</button>
                 </div>
             )}
 
             {showInput && (
               <div className={`absolute inset-0 z-50 p-6 md:p-12 flex flex-col gap-6 animate-in fade-in ${theme === 'archive' ? 'bg-[#f5f5dc]/98' : 'bg-[#030712]/98'}`}>
-                <textarea ref={inputRef} className={`flex-1 bg-transparent border rounded-xl p-4 text-xs font-mono focus:outline-none transition-all ${theme === 'archive' ? 'border-stone-400 text-stone-800 focus:border-stone-900' : 'border-white/5 text-slate-300 focus:border-red-600'}`} placeholder="PASTE DATA..." value={manualText} onChange={(e) => setManualText(e.target.value)} />
+                <textarea ref={inputRef} className={`flex-1 bg-transparent border rounded-3xl p-6 text-xs font-mono focus:outline-none transition-all ${theme === 'archive' ? 'border-stone-400 text-stone-800 focus:border-stone-900' : 'border-white/5 text-slate-300 focus:border-red-600'}`} placeholder="PASTE DATA..." value={manualText} onChange={(e) => setManualText(e.target.value)} />
                 <button onClick={handleLoadManual} className={`w-full py-4 text-white font-black uppercase tracking-widest active:scale-95 transition-all ${activeTheme.bar}`}>Initialize Data</button>
+              </div>
+            )}
+
+            {/* FULL TEXT ARCHIVE OVERLAY */}
+            {showArchive && !zenMode && (
+              <div className={`absolute inset-0 z-50 p-12 overflow-y-auto animate-in fade-in zoom-in-95 ${theme === 'archive' ? 'bg-[#f5f5dc]/98' : 'bg-[#030712]/95'}`}>
+                <div className="flex justify-between mb-8 border-b border-white/10 pb-4">
+                  <h3 className={`text-[10px] font-mono uppercase tracking-widest ${theme === 'archive' ? 'text-stone-600' : 'text-red-500'}`}>Raw Data Archive</h3>
+                  <button onClick={() => setShowArchive(false)} className={`text-[10px] font-mono uppercase ${theme === 'archive' ? 'text-stone-800' : 'text-slate-500'}`}>Close</button>
+                </div>
+                <p className={`leading-relaxed font-mono text-sm whitespace-pre-wrap ${theme === 'archive' ? 'text-stone-800' : 'text-slate-300'}`}>{fullRawText}</p>
               </div>
             )}
 
