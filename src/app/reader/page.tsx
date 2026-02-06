@@ -2,6 +2,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 
+// Import a serif font for the Archive mode if desired, 
+// but we will use standard browser serifs for maximum compatibility.
+
 export default function ReaderPage() {
   const [text, setText] = useState("READY");
   const [fullRawText, setFullRawText] = useState("");
@@ -44,11 +47,11 @@ export default function ReaderPage() {
     return { count: total, current, progress, time: minutes, isComplete };
   }, [words, index, wpm]);
 
-  // UNIFIED RADIUS: Applied 'rounded-3xl' to every theme for consistency
+  // TYPOGRAPHY SYNC: Archive mode now uses 'font-serif' for a paperback feel
   const themeStyles = {
-    ghost: { bg: 'bg-[#030712]', card: 'glass-card rounded-3xl', pivot: 'text-red-600', text: 'text-white', bar: 'bg-red-600' },
-    slate: { bg: 'bg-[#0f172a]', card: 'border border-slate-700 bg-slate-900/50 rounded-3xl', pivot: 'text-sky-400', text: 'text-white', bar: 'bg-sky-500' },
-    archive: { bg: 'bg-[#f5f5dc]', card: 'border border-[#d2b48c] bg-[#fffaf0] rounded-3xl', pivot: 'text-black', text: 'text-stone-800', bar: 'bg-stone-800' }
+    ghost: { bg: 'bg-[#030712]', card: 'glass-card rounded-3xl', pivot: 'text-red-600', text: 'text-white', bar: 'bg-red-600', font: 'font-sans' },
+    slate: { bg: 'bg-[#0f172a]', card: 'border border-slate-700 bg-slate-900/50 rounded-3xl', pivot: 'text-sky-400', text: 'text-white', bar: 'bg-sky-500', font: 'font-sans' },
+    archive: { bg: 'bg-[#f5f5dc]', card: 'border border-[#d2b48c] bg-[#fffaf0] rounded-3xl', pivot: 'text-black', text: 'text-stone-800', bar: 'bg-stone-800', font: 'font-serif' }
   };
   const activeTheme = theme === 'archive' ? themeStyles.archive : theme === 'slate' ? themeStyles.slate : themeStyles.ghost;
 
@@ -72,7 +75,7 @@ export default function ReaderPage() {
     const partRight = displayWord.substring(midpoint + 1);
 
     return (
-      <div className={`flex w-full justify-center items-center italic tracking-tighter transition-all ${activeTheme.text}`}>
+      <div className={`flex w-full justify-center items-center italic tracking-tighter transition-all ${activeTheme.text} ${activeTheme.font}`}>
         <div className="flex-1 text-right opacity-90 font-medium pr-[1px] md:pr-[2px]">{partLeft}</div>
         <span className={`${activeTheme.pivot} font-black scale-125 z-30 inline-block ${theme !== 'archive' ? 'drop-shadow-[0_0_15px_rgba(220,38,38,0.8)]' : ''}`}>{pivot}</span>
         <div className="flex-1 text-left opacity-90 font-medium pl-[1px] md:pl-[2px]">{partRight}</div>
@@ -137,11 +140,10 @@ export default function ReaderPage() {
       {!zenMode && (
         <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <div className="text-center md:text-left">
-            <h1 className={`text-xl md:text-2xl font-black italic tracking-tighter uppercase ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>Quant<span className="text-red-500">.</span>Read</h1>
+            <h1 className={`text-xl md:text-2xl font-black italic tracking-tighter uppercase ${theme === 'archive' ? 'text-stone-800 font-serif' : 'text-white font-sans'}`}>Quant<span className="text-red-500">.</span>Read</h1>
             <span className="text-[8px] md:text-[9px] font-mono text-slate-500 tracking-[0.4em] uppercase">Experimental Speed Deck</span>
           </div>
           <div className="flex flex-wrap justify-center gap-2 md:gap-4">
-            {/* FULL TEXT ARCHIVE BUTTON */}
             {fullRawText && (
                 <button onClick={() => setShowArchive(!showArchive)} className={`px-3 py-2 ${activeTheme.card} text-[10px] font-mono uppercase tracking-widest ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>
                     {showArchive ? "Hide Text" : "Full Text"}
@@ -192,23 +194,22 @@ export default function ReaderPage() {
               </div>
             )}
 
-            {/* FULL TEXT ARCHIVE OVERLAY */}
             {showArchive && !zenMode && (
               <div className={`absolute inset-0 z-50 p-12 overflow-y-auto animate-in fade-in zoom-in-95 ${theme === 'archive' ? 'bg-[#f5f5dc]/98' : 'bg-[#030712]/95'}`}>
                 <div className="flex justify-between mb-8 border-b border-white/10 pb-4">
                   <h3 className={`text-[10px] font-mono uppercase tracking-widest ${theme === 'archive' ? 'text-stone-600' : 'text-red-500'}`}>Raw Data Archive</h3>
                   <button onClick={() => setShowArchive(false)} className={`text-[10px] font-mono uppercase ${theme === 'archive' ? 'text-stone-800' : 'text-slate-500'}`}>Close</button>
                 </div>
-                <p className={`leading-relaxed font-mono text-sm whitespace-pre-wrap ${theme === 'archive' ? 'text-stone-800' : 'text-slate-300'}`}>{fullRawText}</p>
+                <p className={`leading-relaxed font-serif text-sm whitespace-pre-wrap ${theme === 'archive' ? 'text-stone-800' : 'text-slate-300'}`}>{fullRawText}</p>
               </div>
             )}
 
             <div className="absolute top-4 right-4 md:top-8 md:right-10 text-right z-20">
-                <div className={`text-xl md:text-2xl font-black ${activeTheme.pivot}`}>{stats.time} <span className={`text-[10px] uppercase ${theme === 'archive' ? 'text-stone-600' : 'text-white'}`}>Min</span></div>
+                <div className={`text-xl md:text-2xl font-black ${activeTheme.pivot} ${activeTheme.font}`}>{stats.time} <span className={`text-[10px] uppercase ${theme === 'archive' ? 'text-stone-600' : 'text-white'}`}>Min</span></div>
             </div>
 
             <div className="absolute bottom-4 left-4 md:bottom-8 md:left-10 z-20">
-                <div className={`text-lg md:text-xl font-bold ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>{stats.current} / {stats.count}</div>
+                <div className={`text-lg md:text-xl font-bold ${theme === 'archive' ? 'text-stone-800' : 'text-white'} ${activeTheme.font}`}>{stats.current} / {stats.count}</div>
             </div>
 
             <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5">
