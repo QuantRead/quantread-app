@@ -2,9 +2,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 
-// Import a serif font for the Archive mode if desired, 
-// but we will use standard browser serifs for maximum compatibility.
-
 export default function ReaderPage() {
   const [text, setText] = useState("READY");
   const [fullRawText, setFullRawText] = useState("");
@@ -22,6 +19,7 @@ export default function ReaderPage() {
   const [showZenControls, setShowZenControls] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // RESTORED: Persistent State Recovery
   useEffect(() => {
     const savedWpm = localStorage.getItem('quantread_wpm');
     const savedCase = localStorage.getItem('quantread_allcaps');
@@ -37,6 +35,13 @@ export default function ReaderPage() {
     localStorage.setItem('quantread_theme', theme);
   }, [wpm, isAllCaps, theme]);
 
+  // RESTORED: Manual Input Auto-Focus
+  useEffect(() => {
+    if (showInput && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [showInput]);
+
   const stats = useMemo(() => {
     const total = words.length;
     const current = index;
@@ -47,11 +52,11 @@ export default function ReaderPage() {
     return { count: total, current, progress, time: minutes, isComplete };
   }, [words, index, wpm]);
 
-  // TYPOGRAPHY SYNC: Archive mode now uses 'font-serif' for a paperback feel
+  // Baseline Theme Definitions
   const themeStyles = {
-    ghost: { bg: 'bg-[#030712]', card: 'glass-card rounded-3xl', pivot: 'text-red-600', text: 'text-white', bar: 'bg-red-600', font: 'font-sans' },
-    slate: { bg: 'bg-[#0f172a]', card: 'border border-slate-700 bg-slate-900/50 rounded-3xl', pivot: 'text-sky-400', text: 'text-white', bar: 'bg-sky-500', font: 'font-sans' },
-    archive: { bg: 'bg-[#f5f5dc]', card: 'border border-[#d2b48c] bg-[#fffaf0] rounded-3xl', pivot: 'text-black', text: 'text-stone-800', bar: 'bg-stone-800', font: 'font-serif' }
+    ghost: { bg: 'bg-[#030712]', card: 'glass-card rounded-3xl', pivot: 'text-red-600', sideText: 'text-white', bar: 'bg-red-600', font: 'font-sans' },
+    slate: { bg: 'bg-[#0f172a]', card: 'border border-slate-700 bg-slate-900/50 rounded-3xl', pivot: 'text-sky-400', sideText: 'text-white', bar: 'bg-sky-500', font: 'font-sans' },
+    archive: { bg: 'bg-[#f5f5dc]', card: 'border border-[#d2b48c] bg-[#fffaf0] rounded-3xl', pivot: 'text-black', sideText: 'text-stone-500', bar: 'bg-stone-800', font: 'font-serif' }
   };
   const activeTheme = theme === 'archive' ? themeStyles.archive : theme === 'slate' ? themeStyles.slate : themeStyles.ghost;
 
@@ -75,10 +80,10 @@ export default function ReaderPage() {
     const partRight = displayWord.substring(midpoint + 1);
 
     return (
-      <div className={`flex w-full justify-center items-center italic tracking-tighter transition-all ${activeTheme.text} ${activeTheme.font}`}>
-        <div className="flex-1 text-right opacity-90 font-medium pr-[1px] md:pr-[2px]">{partLeft}</div>
+      <div className={`flex w-full justify-center items-center italic tracking-tighter transition-all ${activeTheme.font}`}>
+        <div className={`flex-1 text-right font-medium pr-[1px] md:pr-[2px] ${activeTheme.sideText}`}>{partLeft}</div>
         <span className={`${activeTheme.pivot} font-black scale-125 z-30 inline-block ${theme !== 'archive' ? 'drop-shadow-[0_0_15px_rgba(220,38,38,0.8)]' : ''}`}>{pivot}</span>
-        <div className="flex-1 text-left opacity-90 font-medium pl-[1px] md:pl-[2px]">{partRight}</div>
+        <div className={`flex-1 text-left font-medium pl-[1px] md:pl-[2px] ${activeTheme.sideText}`}>{partRight}</div>
       </div>
     );
   };
@@ -114,6 +119,7 @@ export default function ReaderPage() {
     return () => clearInterval(interval);
   }, [isActive, index, words, wpm, stats.isComplete]);
 
+  // RESTORED: Hard-wired Zen & Key Logic
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space") { e.preventDefault(); setIsActive(prev => !prev); }
@@ -123,6 +129,7 @@ export default function ReaderPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // RESTORED: Mouse Movement Control Logic
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     const handleMouseMove = () => {
@@ -135,8 +142,13 @@ export default function ReaderPage() {
   }, [zenMode]);
 
   return (
-    <main className={`min-h-screen p-4 md:p-8 transition-all duration-700 ${zenMode ? (theme === 'archive' ? 'bg-[#f5f5dc]' : 'bg-black') : activeTheme.bg}`}>
+    <main className={`min-h-screen p-4 md:p-8 transition-all duration-700 ${zenMode ? (theme === 'archive' ? 'bg-[#f5f5dc]' : 'bg-black cursor-none') : activeTheme.bg}`}>
       
+      {/* RESTORED: Mobile Orientation Portal */}
+      <div className="md:hidden portrait:block hidden fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-[8px] font-bold px-3 py-1 rounded-full animate-pulse">
+        ROTATE DEVICE FOR DECK
+      </div>
+
       {!zenMode && (
         <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <div className="text-center md:text-left">
@@ -180,6 +192,7 @@ export default function ReaderPage() {
         <section className={`${zenMode ? 'fixed inset-0 flex items-center justify-center' : 'col-span-1 md:col-span-9'}`}>
           <div className={`${activeTheme.card} neural-glow aspect-video flex items-center justify-center relative overflow-hidden transition-all ${zenMode ? 'w-full h-full rounded-none border-none' : ''}`}>
             
+            {/* RESTORED: Zen Control Overlays */}
             {zenMode && (
                 <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[60] flex gap-4 transition-opacity duration-500 ${showZenControls ? 'opacity-100' : 'opacity-0'}`}>
                     <button onClick={() => setIsActive(!isActive)} className={`px-6 py-2 ${activeTheme.card} text-[10px] font-mono uppercase tracking-widest ${theme === 'archive' ? 'text-stone-800' : 'text-white'}`}>{isActive ? "Pause" : "Resume"}</button>
